@@ -123,7 +123,7 @@ array< int > bData( 33 );
 array< int > expamp( 33 );
 array< int > expamptime( 33 );
 array< DateTime > firstplay( 33 );
-array< DateTime > nextdaily( 33 );
+array< int > nextdaily( 33 ); // Unix timestamp of the next daily reward
 array< int > dailyget( 33 );
 array< float > permaincrease( 33 );
 array< array< bool >> aData( 33, array< bool > ( szAchievementNames.length() ) );
@@ -6371,6 +6371,11 @@ void scxpm_dailyrewards( const int& in index, int& in iDaily = 0 )
 	CBasePlayer@ pPlayer = g_PlayerFuncs.FindPlayerByIndex( index );
 	if ( pPlayer is null ) return;
 	
+	// Opened from the menu: if the next reward is already due, claim it now (otherwise a player
+	// who stays connected only gets it after reconnecting). Same conditions as the check on load.
+	if ( iDaily == 0 && loaddata[ index ] && !gSimulatedLevel && IsDailyDue( nextdaily[ index ] ) )
+		iDaily = dailyget[ index ] + 1;
+	
 	// Update daily rewards now
 	if ( iDaily > 0 ) dailyget[ index ] = iDaily;
 	
@@ -6573,19 +6578,7 @@ void scxpm_helpmenu_cb( CTextMenu@ menu, CBasePlayer@ pPlayer, int page, const C
 // Handles daily rewards
 void DailyReward( const int& in index, int& in iDays, bool bUpdate, string& out szCurrent, string& out szNext )
 {
-	// Check range, priority
-	DateTime dtCurrentTime( UnixTimestamp() );
-	int iCheck = CheckDaily( index, dtCurrentTime, nextdaily[ index ] );
-	if ( iCheck == -1 )
-	{
-		iDays = 0;
-		dailyget[ index ] = 0;
-		
-		// Set next daily
-		TimeDifference tdNextTime( 20 * 60 * 60 ); // ALMOST 1 day
-		dtCurrentTime += tdNextTime;
-		nextdaily[ index ] = dtCurrentTime;
-	}
+	bool bDue = IsDailyDue( nextdaily[ index ] );
 	
 	int iReward;
 	int iNext;
@@ -6650,26 +6643,24 @@ void DailyReward( const int& in index, int& in iDays, bool bUpdate, string& out 
 	// Set string for next reward
 	int iDaysNext = iDays + 1;
 	if ( iDaysNext >= 365 && !HasPermaIncrease( index, "Eternal" ) )
-		szCurrent = "Honorific Mention";
+		szNext = "Honorific Mention";
 	else if ( iDaysNext >= 120 && !HasPermaIncrease( index, "Addict" ) || iDaysNext >= 90 && !HasPermaIncrease( index, "Fanatic" ) || iDaysNext >= 60 && !HasPermaIncrease( index, "Dedicated" ) || iDaysNext >= 30 && !HasPermaIncrease( index, "Installed" ) )
-		szCurrent = "XP Mod +10%";
+		szNext = "XP Mod +10%";
 	else if ( iDaysNext == 42 || iDaysNext == 69 || iDaysNext == 71 || iDaysNext == 123 || iDaysNext == 234 || iDaysNext == 345 )
-		szCurrent = "1 Medal";
+		szNext = "1 Medal";
 	else if ( iDaysNext == 270 || iDaysNext == 300 || iDaysNext == 330 || iDaysNext == 360 )
-		szCurrent = "4x Multiplier [2 hours]";
+		szNext = "4x Multiplier [2 hours]";
 	else if ( iDaysNext == 150 || iDaysNext == 180 || iDaysNext == 210 || iDaysNext == 240 )
-		szCurrent = "3x Multiplier [2 hours]";
+		szNext = "3x Multiplier [2 hours]";
 	else if ( iDaysNext == 15 || iDaysNext == 45 || iDaysNext == 75 || iDaysNext == 105 )
-		szCurrent = "2x Multiplier [2 hours]";
+		szNext = "2x Multiplier [2 hours]";
 	else
-		szCurrent = AddCommas( iReward ) + " XP";
+		szNext = AddCommas( iNext ) + " XP";
 	
-	if ( bUpdate && iCheck == 1 )
+	if ( bUpdate && bDue )
 	{
-		// Set next daily
-		TimeDifference tdNextTime( 20 * 60 * 60 ); // ALMOST 1 day
-		dtCurrentTime += tdNextTime;
-		nextdaily[ index ] = dtCurrentTime;
+		// Set next daily, ALMOST 1 day
+		nextdaily[ index ] = UnixTimestamp() + 20 * 60 * 60;
 		
 		// Give rewards
 		if ( iDays >= 365 && !HasPermaIncrease( index, "Eternal" ) )
@@ -6748,6 +6739,11 @@ void DailyReward( const int& in index, int& in iDays, bool bUpdate, string& out 
 				if ( !gDelayedXP ) earnedxp[ index ] += iReward; // Prevent double XP exploitation on delayed XP maps
 			}
 		}
+		
+		// Write the reward and the new streak to disk now, so a server restart before the map ends
+		// doesn't lose them. A level up from the XP is still done by scxpm_reexp() on the next tick.
+		scxpm_savedata( index );
+		DumpVaults();
 	}
 }
 
@@ -6791,7 +6787,7 @@ void scxpm_savedata( const int& in index )
 		stuff += "#" + hud_red1[ index ] + "#" + hud_green1[ index ] + "#" + hud_blue1[ index ] + "#" + hud_red2[ index ] + "#" + hud_green2[ index ] + "#" + hud_blue2[ index ] + "#" + hud_alpha[ index ];
 		stuff += "#" + hud_pos_x[ index ] + "#" + hud_pos_y[ index ] + "#" + hud_effect[ index ] + "#" + hud_ef_fadein[ index ] + "#" + hud_ef_scantime[ index ];
 		stuff += "#" + expamp[ index ] + "#" + expamptime[ index ];
-		stuff += "#" + firstplay[ index ].ToUnixTimestamp() + "#" + nextdaily[ index ].ToUnixTimestamp() + "#" + dailyget[ index ];
+		stuff += "#" + firstplay[ index ].ToUnixTimestamp() + "#" + nextdaily[ index ] + "#" + dailyget[ index ];
 		stuff += "#" + bHandicaps[ index ];
 		
 		g_MainVaultData[ szSteamID ] = stuff;
@@ -6879,7 +6875,7 @@ void scxpm_loaddata( const int& in index )
 			redcross[ index ] = atoi( config[ 17 ] );
 			expamp[ index ] = atoi( config[ 31 ] );
 			expamptime[ index ] = atoi( config[ 32 ] );
-			nextdaily[ index ].SetUnixTimestamp( atoi( config[ 34 ] ) );
+			nextdaily[ index ] = atoi( config[ 34 ] );
 			dailyget[ index ] = atoi( config[ 35 ] );
 			bHandicaps[ index ] = atoi( config[ 36 ] );
 			
@@ -6889,14 +6885,8 @@ void scxpm_loaddata( const int& in index )
 			
 			scxpm_amptask(); // Force check
 			
-			int iCheck = CheckDaily( index, DateTime( UnixTimestamp() ), nextdaily[ index ] );
-			if ( iCheck == 1 )
+			if ( IsDailyDue( nextdaily[ index ] ) )
 				g_Scheduler.SetTimeout( "scxpm_dailyrewards", 30.0, index, ( dailyget[ index ] + 1 ) );
-			else if ( iCheck == -1 )
-			{
-				string dummy;
-				DailyReward( index, 0, false, dummy, dummy );
-			}
 			
 			// Check if handicaps are allowed on this map
 			if ( !gNoSkills && !gNoHandicaps || gAllowHandicaps )
@@ -7173,7 +7163,7 @@ void LoadEmptySkills( const int& in index )
 	expamp[ index ] = 0;
 	expamptime[ index ] = 0;
 	firstplay[ index ] = UnixTimestamp();
-	nextdaily[ index ] = DateTime( UnixTimestamp() ) + TimeDifference( 20 * 60 * 60 );
+	nextdaily[ index ] = UnixTimestamp() + 20 * 60 * 60;
 	dailyget[ index ] = 0;
 	
 	for( uint i = 0; i < szAchievementNames.length(); i++ )
@@ -7817,17 +7807,12 @@ bool IntStringToBool( string& in szConvert )
 		return false;
 }
 
-/* Check whenever time is in daily range */
-int CheckDaily( const int& in index, DateTime& in dtCurrentTime, DateTime& in dtCheck )
+/* Whether the next daily reward is available. Uses plain Unix timestamps: DateTime and
+   TimeDifference give wrong results on the server, so the reward never became available.
+   Players no longer lose their daily streak, so there is no expiration. */
+bool IsDailyDue( int iNextDaily )
 {
-	TimeDifference tdCheck( dtCheck, dtCurrentTime );
-	if ( tdCheck.GetTimeDifference() < 0.0 ) // Negative means current time is greater than last daily reward get.
-	{
-		// Players no longer lose their daily streak
-		return 1;
-	}
-	
-	return 0;
+	return UnixTimestamp() > iNextDaily;
 }
 
 /* Add a new perma-increase to the player */
