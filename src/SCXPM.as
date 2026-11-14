@@ -1137,7 +1137,7 @@ void scxpm_addxp( const CCommand@ pArgs )
 			// Max LV
 			if ( playerlevel[ index ] >= 3000 )
 			{
-				g_PlayerFuncs.ClientPrint( pPlayer, HUD_PRINTCONSOLE, "[SCXPM] That player is on it's maximum level and no more XP can be given.\n" );
+				g_PlayerFuncs.ClientPrint( pPlayer, HUD_PRINTCONSOLE, "[SCXPM] That player is already at the maximum level, no more XP can be given.\n" );
 				return;
 			}
 			
@@ -2910,12 +2910,12 @@ void scxpm_reexp()
 					g_Game.AlertMessage( at_logged, "[SCXPM] " + name + " (" + steamid + ") was crowned Champion.\n" );
 					SCXPM_Log( name + " (" + steamid + ") was crowned Champion.\n" );
 					
-					g_PlayerFuncs.ClientPrintAll( HUD_PRINTTALK, "[SCXPM] WE HAVE A NEW CHAMPION! Hail " + name + ", a new welder of the crown!!\n" );
+					g_PlayerFuncs.ClientPrintAll( HUD_PRINTTALK, "[SCXPM] WE HAVE A NEW CHAMPION! Hail " + name + ", a new wielder of the crown!!\n" );
 					
 					string szMessage = "";
-					szMessage += "This played managed to overcome all obstacles,";
+					szMessage += "This player managed to overcome all obstacles,";
 					szMessage += "!nchallenges, and frustrations since the very";
-					szMessage += "!nstart of its carrer.!n!n";
+					szMessage += "!nstart of its career.!n!n";
 					szMessage += "But above all, determination in the ultimate";
 					szMessage += "!ntask of completing and accumulating every";
 					szMessage += "!nsingle level and medal of the system.!n!n";
@@ -2937,10 +2937,9 @@ void scxpm_reexp()
 					if ( playerlevel[ i ] >= 3000 && !HasPermaIncrease( i, "XP Devourer" ) )
 					{
 						string szMessage = "";
-						szMessage += "This player has remained in the unwavering";
-						szMessage += "!nand never ending search of becoming a";
-						szMessage += "!nsuperior being. And has succeeded.!n!n";
-						szMessage += "Hail Poppo.";
+						szMessage += "This player never wavered in the endless";
+						szMessage += "!nquest to become a superior being,";
+						szMessage += "!nand succeeded.";
 						
 						AddPermaIncrease( i, "0.0#XP Devourer#" + szMessage + "!n!nHONORIFIC MENTION!n\n" );
 					}
@@ -7358,7 +7357,7 @@ void scxpm_champion_welcome( const int& in index )
 	szTitle = "I SEE IT AND I DON'T BELIEVE IT!\n\n";
 	
 	szTitle += "You are the player number #" + ( ++iPlayers ) + " that has managed to\n";
-	szTitle += "survive the dauting task of getting all levels and medals\n";
+	szTitle += "survive the daunting task of getting all levels and medals\n";
 	szTitle += "and crown yourself Champion!\n\n";
 	
 	szTitle += "Try now to complete pending achievements,\n";
