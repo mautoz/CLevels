@@ -6371,6 +6371,11 @@ void scxpm_dailyrewards( const int& in index, int& in iDaily = 0 )
 	CBasePlayer@ pPlayer = g_PlayerFuncs.FindPlayerByIndex( index );
 	if ( pPlayer is null ) return;
 	
+	// Opened from the menu: if the next reward is already due, claim it now
+	// (otherwise a player who stays connected only gets it after reconnecting)
+	if ( iDaily == 0 && CheckDaily( index, UnixTimestamp(), nextdaily[ index ].ToUnixTimestamp() ) == 1 )
+		iDaily = dailyget[ index ] + 1;
+	
 	// Update daily rewards now
 	if ( iDaily > 0 ) dailyget[ index ] = iDaily;
 	
@@ -6574,17 +6579,15 @@ void scxpm_helpmenu_cb( CTextMenu@ menu, CBasePlayer@ pPlayer, int page, const C
 void DailyReward( const int& in index, int& in iDays, bool bUpdate, string& out szCurrent, string& out szNext )
 {
 	// Check range, priority
-	DateTime dtCurrentTime( UnixTimestamp() );
-	int iCheck = CheckDaily( index, dtCurrentTime, nextdaily[ index ] );
+	int iCurrentTime = UnixTimestamp();
+	int iCheck = CheckDaily( index, iCurrentTime, nextdaily[ index ].ToUnixTimestamp() );
 	if ( iCheck == -1 )
 	{
 		iDays = 0;
 		dailyget[ index ] = 0;
 		
-		// Set next daily
-		TimeDifference tdNextTime( 20 * 60 * 60 ); // ALMOST 1 day
-		dtCurrentTime += tdNextTime;
-		nextdaily[ index ] = dtCurrentTime;
+		// Set next daily, ALMOST 1 day
+		nextdaily[ index ].SetUnixTimestamp( iCurrentTime + 20 * 60 * 60 );
 	}
 	
 	int iReward;
@@ -6666,10 +6669,8 @@ void DailyReward( const int& in index, int& in iDays, bool bUpdate, string& out 
 	
 	if ( bUpdate && iCheck == 1 )
 	{
-		// Set next daily
-		TimeDifference tdNextTime( 20 * 60 * 60 ); // ALMOST 1 day
-		dtCurrentTime += tdNextTime;
-		nextdaily[ index ] = dtCurrentTime;
+		// Set next daily, ALMOST 1 day
+		nextdaily[ index ].SetUnixTimestamp( iCurrentTime + 20 * 60 * 60 );
 		
 		// Give rewards
 		if ( iDays >= 365 && !HasPermaIncrease( index, "Eternal" ) )
@@ -6746,6 +6747,16 @@ void DailyReward( const int& in index, int& in iDays, bool bUpdate, string& out 
 			{
 				xp[ index ] += iReward;
 				if ( !gDelayedXP ) earnedxp[ index ] += iReward; // Prevent double XP exploitation on delayed XP maps
+				
+				// Write the reward to disk now, so a server restart before the map ends doesn't lose it.
+				// The new level is only set for the save (players below SAVE_MIN_LEVEL aren't saved), then
+				// the old one comes back so scxpm_reexp() does the real level up on the next tick
+				// (message, sound, skill points, Champion and level rewards).
+				int iLevelBefore = playerlevel[ index ];
+				playerlevel[ index ] = scxpm_calc_lvl( xp[ index ] );
+				scxpm_savedata( index );
+				DumpVaults();
+				playerlevel[ index ] = iLevelBefore;
 			}
 		}
 	}
@@ -6889,7 +6900,7 @@ void scxpm_loaddata( const int& in index )
 			
 			scxpm_amptask(); // Force check
 			
-			int iCheck = CheckDaily( index, DateTime( UnixTimestamp() ), nextdaily[ index ] );
+			int iCheck = CheckDaily( index, UnixTimestamp(), nextdaily[ index ].ToUnixTimestamp() );
 			if ( iCheck == 1 )
 				g_Scheduler.SetTimeout( "scxpm_dailyrewards", 30.0, index, ( dailyget[ index ] + 1 ) );
 			else if ( iCheck == -1 )
@@ -7173,7 +7184,7 @@ void LoadEmptySkills( const int& in index )
 	expamp[ index ] = 0;
 	expamptime[ index ] = 0;
 	firstplay[ index ] = UnixTimestamp();
-	nextdaily[ index ] = DateTime( UnixTimestamp() ) + TimeDifference( 20 * 60 * 60 );
+	nextdaily[ index ].SetUnixTimestamp( UnixTimestamp() + 20 * 60 * 60 );
 	dailyget[ index ] = 0;
 	
 	for( uint i = 0; i < szAchievementNames.length(); i++ )
@@ -7817,15 +7828,13 @@ bool IntStringToBool( string& in szConvert )
 		return false;
 }
 
-/* Check whenever time is in daily range */
-int CheckDaily( const int& in index, DateTime& in dtCurrentTime, DateTime& in dtCheck )
+/* Check whenever time is in daily range. Compares plain Unix timestamps: DateTime and
+   TimeDifference give wrong results on the server, so the reward never became available. */
+int CheckDaily( const int& in index, int iCurrentTime, int iCheckTime )
 {
-	TimeDifference tdCheck( dtCheck, dtCurrentTime );
-	if ( tdCheck.GetTimeDifference() < 0.0 ) // Negative means current time is greater than last daily reward get.
-	{
-		// Players no longer lose their daily streak
+	// Players no longer lose their daily streak
+	if ( iCurrentTime > iCheckTime )
 		return 1;
-	}
 	
 	return 0;
 }
