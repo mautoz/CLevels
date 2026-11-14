@@ -1263,10 +1263,7 @@ void scxpm_setlvl( const CCommand@ pArgs )
 			}
 			else
 			{
-				if ( nowlvl == 0 )
-					xp[ index ] = 0;
-				else
-					xp[ index ] = scxpm_calc_xp( nowlvl );
+				xp[ index ] = scxpm_calc_xp( nowlvl );
 			}
 			
 			if ( playerlevel[ index ] > nowlvl )
@@ -2035,11 +2032,8 @@ void scxpm_startsimulation( const CCommand@ pArgs )
 
 void scxpm_calcneedxp( const int& in index )
 {
-	// First XP of the next level, the same boundary scxpm_calc_lvl() uses:
-	// smallest XP where 7*(L+10)^2 < 2*XP + 642. The old float formula put it 1 XP too
-	// high on odd levels, so the level up and the HUD disagreed with scxpm_calc_lvl() by 1 XP.
-	int64 a = int64( playerlevel[ index ] ) + 10;
-	neededxp[ index ] = int( ( 7 * a * a - 642 ) / 2 + 1 );
+	// First XP of the next level
+	neededxp[ index ] = scxpm_calc_xp( playerlevel[ index ] + 1 );
 }
 
 void scxpm_calc_points( const int& in index )
@@ -2080,12 +2074,13 @@ int scxpm_calc_lvl( const int& in xp )
 
 int scxpm_calc_xp( int& in level )
 {
-	// Same as round( L*70 + L*L*3.5 + 30 ) with L = level - 1, in integers. Level 0 (or less) is 0 XP.
-	level--;
-	if ( level < 0 )
+	// First XP of a level, the same boundary scxpm_calc_lvl() uses: smallest XP where
+	// 7*(level+9)^2 < 2*XP + 642. The old float formula round( L*70 + L*L*3.5 + 30 ) (L = level - 1)
+	// was 1 XP above it on even levels. Level 0 (or less) is 0 XP.
+	if ( level <= 0 )
 		return 0;
-	int64 L = level;
-	return int( ( 7 * L * L + 140 * L + 61 ) / 2 );
+	int64 a = int64( level ) + 9;
+	return int( ( 7 * a * a - 642 ) / 2 + 1 );
 }
 
 float scxpm_calc_xpgain( const int& in index )
@@ -2874,13 +2869,13 @@ void scxpm_reexp()
 				// Stop caring if max was reached
 				if ( playerlevel[ i ] < 3000 )
 				{
-					float normalvar = float( xp[ i ] ) / 5.0 / ( exp * ( expamp[ i ] + 1 ) ) + pPlayer.pev.frags - lastfrags[ i ];
-					xp[ i ] = floatround( normalvar * 5.0 * ( exp * ( expamp[ i ] + 1 ) ) );
+					// Add only the gain: same result as the old round trip of the whole XP through a
+					// float, which lost precision on high XP and could move it by 1-2 XP every second
+					xp[ i ] += floatround( ( pPlayer.pev.frags - lastfrags[ i ] ) * 5.0 * ( exp * ( expamp[ i ] + 1 ) ) );
 				}
 			}
 			
-			float earnvar = float( earnedxp[ i ] ) / 5.0 / ( exp * ( expamp[ i ] + 1 ) ) + pPlayer.pev.frags - lastfrags[ i ];
-			earnedxp[ i ] = floatround( earnvar * 5.0 * ( exp * ( expamp[ i ] + 1 ) ) );
+			earnedxp[ i ] += floatround( ( pPlayer.pev.frags - lastfrags[ i ] ) * 5.0 * ( exp * ( expamp[ i ] + 1 ) ) );
 			
 			scxpm_savedata( i );
 			scxpm_checkachievement( i );
@@ -2893,14 +2888,6 @@ void scxpm_reexp()
 				int playerlevelOld = playerlevel[ i ];
 				int playerlevelNew = scxpm_calc_lvl( xp[ i ] );
 				playerlevel[ i ] = playerlevelNew;
-				
-				// Only announce a level up if the level really went up
-				if ( playerlevel[ i ] <= playerlevelOld )
-				{
-					playerlevel[ i ] = playerlevelOld;
-					scxpm_calcneedxp( i );
-					continue;
-				}
 				
 				// No more skillpoints should be given beyond this level
 				if ( playerlevelNew > 700 ) playerlevelNew = 700;
