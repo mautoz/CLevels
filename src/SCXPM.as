@@ -866,13 +866,16 @@ void scxpm_gift_player( SayParameters@ pParams )
 				if ( iAmount > 0 )
 				{
 					int iDelta = playerlevel[ index ] - iAmount;
+					// The target can't go past the max level
+					if ( iDelta >= 0 && playerlevel[ target_index ] + iAmount > 3000 )
+					{
+						g_PlayerFuncs.ClientPrint( pPlayer, HUD_PRINTTALK, "[SCXPM] " + tname + " can receive at most " + ( playerlevel[ target_index ] < 3000 ? 3000 - playerlevel[ target_index ] : 0 ) + " level(s).\n" );
+						return;
+					}
 					if ( iDelta >= 0 )
 					{
 						// First lower the user's level
-						int helpvar = iDelta - 1;
-						float m70b = float( helpvar ) * 70.0;
-						float mselfm3dot2b = float( helpvar ) * float( helpvar ) * 3.5;
-						xp[ index ] = floatround( m70b + mselfm3dot2b + 30.0 );
+						xp[ index ] = scxpm_calc_xp( iDelta );
 						
 						playerlevel[ index ] = iDelta;
 						scxpm_calcneedxp( index );
@@ -880,14 +883,11 @@ void scxpm_gift_player( SayParameters@ pParams )
 						// Now give to the target's level
 						int iLambda = playerlevel[ target_index ] + iAmount;
 						
-						helpvar = iLambda - 1;
-						m70b = float( helpvar ) * 70.0;
-						mselfm3dot2b = float( helpvar ) * float( helpvar ) * 3.5;
-						xp[ target_index ] = floatround( m70b + mselfm3dot2b + 30.0 );
+						xp[ target_index ] = scxpm_calc_xp( iLambda );
 						
 						skillpoints[ target_index ] = Math.clamp( 0, 700, skillpoints[ target_index ] + iLambda - playerlevel[ target_index ] );
 						playerlevel[ target_index ] = iLambda;
-						scxpm_calcneedxp( index );
+						scxpm_calcneedxp( target_index );
 						
 						g_SoundSystem.EmitSoundDyn( pTarget.edict(), CHAN_STATIC, "isc/scxpm/levelup.ogg", VOL_NORM, ATTN_NONE, SND_SKIP_ORIGIN_USE_ENT, PITCH_NORM, target_index );
 						
@@ -1263,15 +1263,7 @@ void scxpm_setlvl( const CCommand@ pArgs )
 			}
 			else
 			{
-				if ( nowlvl == 0 )
-					xp[ index ] = 0;
-				else
-				{
-					int helpvar = nowlvl - 1;
-					float m70b = float( helpvar ) * 70.0;
-					float mselfm3dot2b = float( helpvar ) * float( helpvar ) * 3.5;
-					xp[ index ] = floatround( m70b + mselfm3dot2b + 30.0 );
-				}
+				xp[ index ] = scxpm_calc_xp( nowlvl );
 			}
 			
 			if ( playerlevel[ index ] > nowlvl )
@@ -2040,9 +2032,8 @@ void scxpm_startsimulation( const CCommand@ pArgs )
 
 void scxpm_calcneedxp( const int& in index )
 {
-	float m70 = float( playerlevel[ index ] ) * 70.0;
-	float mselfm3dot2 = float( playerlevel[ index ] ) * float( playerlevel[ index ] ) * 3.5;
-	neededxp[ index ] = floatround( m70 + mselfm3dot2 + 30.0 );
+	// First XP of the next level
+	neededxp[ index ] = scxpm_calc_xp( playerlevel[ index ] + 1 );
 }
 
 void scxpm_calc_points( const int& in index )
@@ -2062,13 +2053,34 @@ void scxpm_calc_points( const int& in index )
 
 int scxpm_calc_lvl( const int& in xp )
 {
-	return floatround( -10.0 + sqrt( 100.0 - ( 60.0 / 7.0 - ( ( float( xp ) + 1.0 ) / 3.5 ) ) ), floatround_ceil );
+	// Exact integer version of ceil( -10 + sqrt( 100 - ( 60/7 - ( xp + 1 ) / 3.5 ) ) ), which is the
+	// smallest L where 7*(L+10)^2 >= 2*xp + 642. The float formula drifts above ~3.6M XP, which made
+	// scxpm_reexp() announce the same level up every second on high levels.
+	// Floor: XP <= 29 is level 0 (no sqrt of a negative number). Ceiling: never above level 3000.
+	if ( xp <= 29 )
+		return 0;
+	if ( xp >= scxpm_calc_xp( 3000 ) )
+		return 3000;
+	int64 t = int64( xp ) * 2 + 642;
+	int64 lvl = int64( sqrt( float( t ) / 7.0 ) ) - 10;
+	if ( lvl < 0 )
+		lvl = 0;
+	while ( 7 * ( lvl + 10 ) * ( lvl + 10 ) < t )
+		lvl++;
+	while ( lvl > 0 && 7 * ( lvl + 9 ) * ( lvl + 9 ) >= t )
+		lvl--;
+	return int( lvl );
 }
 
 int scxpm_calc_xp( int& in level )
 {
-	level--;
-	return floatround( ( float( level ) * 70.0 ) + ( float( level ) * float( level ) * 3.5 ) + 30.0 );
+	// First XP of a level, the same boundary scxpm_calc_lvl() uses: smallest XP where
+	// 7*(level+9)^2 < 2*XP + 642. The old float formula round( L*70 + L*L*3.5 + 30 ) (L = level - 1)
+	// was 1 XP above it on even levels. Level 0 (or less) is 0 XP.
+	if ( level <= 0 )
+		return 0;
+	int64 a = int64( level ) + 9;
+	return int( ( 7 * a * a - 642 ) / 2 + 1 );
 }
 
 float scxpm_calc_xpgain( const int& in index )
@@ -2855,25 +2867,27 @@ void scxpm_reexp()
 			if ( !gDelayedXP )
 			{
 				// Stop caring if max was reached
-				if ( playerlevel[ i ] != 3000 )
+				if ( playerlevel[ i ] < 3000 )
 				{
-					float normalvar = float( xp[ i ] ) / 5.0 / ( exp * ( expamp[ i ] + 1 ) ) + pPlayer.pev.frags - lastfrags[ i ];
-					xp[ i ] = floatround( normalvar * 5.0 * ( exp * ( expamp[ i ] + 1 ) ) );
+					// Add only the gain: same result as the old round trip of the whole XP through a
+					// float, which lost precision on high XP and could move it by 1-2 XP every second
+					xp[ i ] += floatround( ( pPlayer.pev.frags - lastfrags[ i ] ) * 5.0 * ( exp * ( expamp[ i ] + 1 ) ) );
 				}
 			}
 			
-			float earnvar = float( earnedxp[ i ] ) / 5.0 / ( exp * ( expamp[ i ] + 1 ) ) + pPlayer.pev.frags - lastfrags[ i ];
-			earnedxp[ i ] = floatround( earnvar * 5.0 * ( exp * ( expamp[ i ] + 1 ) ) );
+			earnedxp[ i ] += floatround( ( pPlayer.pev.frags - lastfrags[ i ] ) * 5.0 * ( exp * ( expamp[ i ] + 1 ) ) );
 			
 			scxpm_savedata( i );
 			scxpm_checkachievement( i );
 			lastfrags[ i ] = pPlayer.pev.frags;
 			
-			if ( xp[ i ] > neededxp[ i ] )
+			// neededxp is the first XP of the next level, so ">=" (with ">" a player stopped
+			// exactly at the max XP stayed at level 2999)
+			if ( playerlevel[ i ] < 3000 && xp[ i ] >= neededxp[ i ] )
 			{
 				int playerlevelOld = playerlevel[ i ];
 				int playerlevelNew = scxpm_calc_lvl( xp[ i ] );
-				playerlevel[ i ] = scxpm_calc_lvl( xp[ i ] );
+				playerlevel[ i ] = playerlevelNew;
 				
 				// No more skillpoints should be given beyond this level
 				if ( playerlevelNew > 700 ) playerlevelNew = 700;
