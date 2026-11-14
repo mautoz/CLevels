@@ -42,6 +42,7 @@ const int HUD_ACHIEVEMENTS = 256;
 const int HC_AUTOSELECT = 512;
 const int BS_NOAUTOOPEN = 1024;
 
+const int HUD_CHANNEL = 6; // HUD text channel for the XP HUD. Map texts (game_text) default to channel 1, so keep it away from 1-4
 const float HH_EXTRAPERCENT = 2.00; // Happy Hour
 const float RT_EXTRAPERCENT = 1.50; // Runaway Time
 
@@ -175,6 +176,8 @@ array< float > hud_pos_y( 33 );
 array< int > hud_effect( 33 );
 array< float > hud_ef_fadein( 33 );
 array< float > hud_ef_scantime( 33 );
+array< string > cachedHudText( 33 ); // Last HUD text + settings sent to the player
+array< int > hudRefreshTick( 33 );
 
 array< float > rhealthwait( 33 );
 array< float > rarmorwait( 33 );
@@ -319,6 +322,7 @@ void MapInit()
 		earnedxp[ i ] = 0.0;
 		permaincrease[ i ] = 0.0;
 		loaddata[ i ] = false;
+		scxpm_resethudcache( i );
 		handicap1[ i ] = false;
 		handicap2[ i ] = false;
 		handicap3[ i ] = false;
@@ -496,6 +500,7 @@ HookReturnCode ClientPutInServer( CBasePlayer@ pPlayer )
 	lastfrags[ index ] = 0.0;
 	lastDeadflag[ index ] = 123;
 	loaddata[ index ] = false;
+	scxpm_resethudcache( index );
 	
 	scxpm_loaddata( index );
 	
@@ -3759,6 +3764,13 @@ void scxpm_hudview_cb( CTextMenu@ menu, CBasePlayer@ pPlayer, int page, const CT
 	}
 }
 
+// Makes the next scxpm_showdata() send the HUD again (map start, player joined, HUD shown again)
+void scxpm_resethudcache( const int& in index )
+{
+	cachedHudText[ index ] = "";
+	hudRefreshTick[ index ] = 0;
+}
+
 void scxpm_showdata()
 {
 	// No HUD here
@@ -3811,6 +3823,18 @@ void scxpm_showdata()
 					hudtext += "Achievements: " + GetAchievementClear( i ) + " / " + int( szAchievementNames.length() ) + "\n";
 			}
 			
+			// Only resend when the text or the player's HUD settings change (or once a minute):
+			// avoids replaying the text effect and sending the same message every second
+			string szHudKey = hudtext + "|" + hud_pos_x[ i ] + "," + hud_pos_y[ i ] + "," + hud_effect[ i ];
+			szHudKey += "," + hud_red1[ i ] + "," + hud_green1[ i ] + "," + hud_blue1[ i ] + "," + hud_red2[ i ] + "," + hud_green2[ i ] + "," + hud_blue2[ i ];
+			szHudKey += "," + hud_alpha[ i ] + "," + hud_ef_fadein[ i ] + "," + hud_ef_scantime[ i ];
+			hudRefreshTick[ i ]++;
+			if ( szHudKey == cachedHudText[ i ] && hudRefreshTick[ i ] < 60 )
+				continue;
+			
+			cachedHudText[ i ] = szHudKey;
+			hudRefreshTick[ i ] = 0;
+			
 			HUDTextParams textParams;
 			textParams.x = hud_pos_x[ i ];
 			textParams.y = hud_pos_y[ i ];
@@ -3827,7 +3851,7 @@ void scxpm_showdata()
 			textParams.fadeoutTime = 0.0;
 			textParams.holdTime = 255.0;
 			textParams.fxTime = hud_ef_scantime[ i ];
-			textParams.channel = 1;
+			textParams.channel = HUD_CHANNEL;
 			
 			g_PlayerFuncs.HudMessage( pPlayer, textParams, hudtext );
 		}
@@ -8540,13 +8564,17 @@ class CHideHUD : ScriptBaseEntity // Show/Hide the HUD
 	void Spawn()
 	{
 		if ( gHideHUD )
+		{
 			gHideHUD = false;
+			for ( int i = 1; i <= g_Engine.maxClients; i++ )
+				scxpm_resethudcache( i );
+		}
 		else
 		{
 			gHideHUD = true;
 			
 			HUDTextParams blah;
-			blah.channel = 1;
+			blah.channel = HUD_CHANNEL;
 			g_PlayerFuncs.HudMessageAll( blah, " " ); // just to empty the HUD
 		}
 		
