@@ -35,7 +35,6 @@ const int HUD_EXP = 1;
 const int HUD_EXPLEFT = 2;
 const int HUD_EXPEARN = 4;
 const int HUD_LEVEL = 8;
-//const int HUD_CLASS = 16; // No longer used
 const int HUD_MEDALS = 32;
 const int SS_DISPENCER = 64;
 const int SS_RANGEHEAL = 128;
@@ -383,7 +382,6 @@ void MapInit()
 				{
 					gDisabled = true;
 					SCXPM_Log( "-------- SCXPM DISABLED FOR MAP: " + mapname + " --------\n" );
-					//break;
 				}
 				else
 				{
@@ -872,7 +870,6 @@ void scxpm_gift_player( SayParameters@ pParams )
 						xp[ index ] = floatround( m70b + mselfm3dot2b + 30.0 );
 						
 						playerlevel[ index ] = iDelta;
-						//scxpm_breset( index, true );
 						scxpm_calcneedxp( index );
 						
 						// Now give to the target's level
@@ -913,7 +910,6 @@ void scxpm_gift_player( SayParameters@ pParams )
 					{
 						// First lower the user's medals
 						medals[ index ] = iDelta;
-						//scxpm_sreset( index );
 						
 						// Now give to the target's medals
 						int iLambda = medals[ target_index ] + iAmount;
@@ -1339,7 +1335,7 @@ void scxpm_addmedal( const CCommand@ pArgs )
 				return;
 			}
 			
-			// Welp, and repeat...
+			// Same 175 cap for the target
 			int overflow = amount + medals[ index ];
 			if ( overflow > 175 )
 				amount = 175 - medals[ index ];
@@ -1710,8 +1706,6 @@ void scxpm_setadata( const CCommand@ pArgs )
 				// Log messages
 				g_Game.AlertMessage( at_logged, "[SCXPM] " + aname + " (" + asteamid + ") edited achievement data to " + tname + " (" + tsteamid + ") | " + szFixedName + " [" + ( iUnlock >= 1 ? "UNLOCK" : "LOCK" ) + "]" + "[" + ( iReward >= 1 ? "WITH REWARD" : "WITHOUT REWARD" ) + "].\n" );
 				SCXPM_Log( aname + " (" + asteamid + ") edited achievement data to " + tname + " (" + tsteamid + ") | " + szFixedName + " [" + ( iUnlock >= 1 ? "UNLOCK" : "LOCK" ) + "]" + "[" + ( iReward >= 1 ? "WITH REWARD" : "WITHOUT REWARD" ) + "].\n" );
-				
-				//scxpm_saveachievement( index );
 				
 				g_PlayerFuncs.ClientPrint( pPlayer, HUD_PRINTCONSOLE, "[SCXPM] Player's achievement data updated\n" );
 				
@@ -2169,7 +2163,6 @@ void scxpm_sdac()
 	scxpm_updatehc();
 	
 	// Scan dropped weapons and check if it's clips are empty
-	// Ugh, I hate doing unefficient and unoptimized stuff.
 	CBaseEntity@ pEntity = null;
 	while ( ( @pEntity = g_EntityFuncs.FindEntityByClassname( pEntity, "weapon_*" ) ) !is null )
 	{
@@ -2391,7 +2384,6 @@ void scxpm_handicaps_cb( CTextMenu@ menu, CBasePlayer@ pPlayer, int page, const 
 		{
 			if ( !can_edit_handicaps )
 			{
-				// Does anyone know a way to not repeat this thing 15x times?
 				g_PlayerFuncs.ClientPrint( pPlayer, HUD_PRINTTALK, "[SCXPM] Handicaps can only be enabled at map start.\n" );
 				g_Scheduler.SetTimeout( "scxpm_handicaps", 0.01, index, 0 );
 				return;
@@ -4137,7 +4129,7 @@ void scxpm_medaltolvl_cb( CTextMenu@ menu, CBasePlayer@ pPlayer, int page, const
 			
 			g_PlayerFuncs.ClientPrintAll( HUD_PRINTTALK, "[SCXPM] " + name + " resetted 9 medals for levels! (New total of " + medals[ index ] + ").\n" );
 			
-			xp[ index ] += 487500; // These numbers are probably so wrong...
+			xp[ index ] += 487500;
 			earnedxp[ index ] += 487500;
 		}
 		else if ( medals[ index ] >= 7 )
@@ -5172,14 +5164,10 @@ HookReturnCode PlayerPreThink( CBasePlayer@ pPlayer, uint& out dummy )
 
 HookReturnCode PlayerTakeDamage( DamageInfo@ diData )
 {
-	// Do not...
 	if ( gDisabled )
 		return HOOK_CONTINUE;
 	
-	// CBasePlayer@ pPlayer = cast< CBasePlayer@ >( diData.pVictim );
-	// Can't implicitly convert from 'const CBaseEntity@' to 'CBaseEntity@&
-	//
-	// >sad poppo noises
+	// diData.pVictim is const and can't be cast to CBasePlayer@ directly
 	
 	entvars_t@ pStupidThing = @diData.pVictim.pev;
 	CBasePlayer@ pPlayer = cast< CBasePlayer@ >( g_EntityFuncs.Instance( pStupidThing ) );
@@ -5194,7 +5182,6 @@ HookReturnCode PlayerTakeDamage( DamageInfo@ diData )
 		{
 			if ( !FNullEnt( pPlayer.pev.dmg_inflictor ) ) // Should exclude worldspawn (falldamage)
 			{
-				// Again, why?
 				if ( diData.pAttacker !is null )
 				{
 					// Do not continuously poison the player if it is not taking any damage
@@ -5250,9 +5237,8 @@ HookReturnCode PlayerTakeDamage( DamageInfo@ diData )
 		
 		if ( luck > 185.0 )
 		{
-			// Don't fully block the TakeDamage call, we still want the player to know where the damage is coming from
-			// Actually, scratch that. Damage direction is only shown if the player has no armor. I call bullshit. -Giegue
-			diData.flDamage = 0.1; // Should be enough
+			// Not fully blocked so the player still sees where the damage comes from (only shown without armor)
+			diData.flDamage = 0.1;
 		}
 	}
 	
@@ -5943,7 +5929,6 @@ void scxpm_others( const int& in index )
 {
 	CBasePlayer@ pPlayer = g_PlayerFuncs.FindPlayerByIndex( index );
 	
-	// Could rewrite this with the new ShowMOTD code, but I'm lazy :P
 	NetworkMessage title( MSG_ONE_UNRELIABLE, NetworkMessages::ServerName, pPlayer.edict() );
 	title.WriteString( "Player's Data" );
 	title.End();
@@ -6327,7 +6312,6 @@ void scxpm_pi_showinfo_cb( CTextMenu@ menu, CBasePlayer@ pPlayer, int page, cons
 	string selection;
 	item.m_pUserData.retrieve( selection );
 	
-	// This is the most bastarized and hacky shit I've ever programmed. -Giegue
 	int iEntries = 0;
 	if ( iIndexInspect[ index ] > 0 )
 		GetPermaIncrease( iIndexInspect[ index ], null, false, "", iEntries, true );
@@ -6565,8 +6549,8 @@ void DailyReward( const int& in index, int& in iDays, bool bUpdate, string& out 
 		nextdaily[ index ] = dtCurrentTime;
 	}
 	
-	int iReward; // = 50 * iDays;
-	int iNext; // = 50 * ( iDays + 1 );
+	int iReward;
+	int iNext;
 	
 	// After 30 days, XP increases become greater but slower
 	// XP Rewards don't get any higher after 4 consecutive months
@@ -7135,7 +7119,7 @@ void LoadEmptySkills( const int& in index )
 	demoman[ index ] = 0;
 	practiceshot[ index ] = 0;
 	bioelectric[ index ] = 0;
-	bData[ index ] = HUD_EXP + HUD_EXPLEFT + HUD_LEVEL + HUD_MEDALS; // (43) Err...
+	bData[ index ] = HUD_EXP + HUD_EXPLEFT + HUD_LEVEL + HUD_MEDALS; // 43
 	hud_red1[ index ] = 50;
 	hud_green1[ index ] = 135;
 	hud_blue1[ index ] = 180;
@@ -7727,7 +7711,6 @@ string GetFormatDate( DateTime& in dtTime )
 	string szAppend;
 	switch( day )
 	{
-		// Surely, there is a better way...
 		case 1:
 		case 11:
 		case 21:
@@ -7741,7 +7724,7 @@ string GetFormatDate( DateTime& in dtTime )
 	return szMonth + " " + day + szAppend + ", " + year;
 }
 
-/* Stupid but meh. Get the name of a handicap */
+/* Get the name of a handicap */
 string GetHandicapName( int iHC )
 {
 	string szReturn = "NULL";
@@ -7790,16 +7773,7 @@ int CheckDaily( const int& in index, DateTime& in dtCurrentTime, DateTime& in dt
 	TimeDifference tdCheck( dtCheck, dtCurrentTime );
 	if ( tdCheck.GetTimeDifference() < 0.0 ) // Negative means current time is greater than last daily reward get.
 	{
-		/* Players no longer lose their daily number.
-		TimeDifference tdExpiration( 24 * 60 * 60 ); // 1 day
-		TimeDifference tdLostCheck( ( dtCheck + tdExpiration ), dtCurrentTime );
-		if ( tdLostCheck.GetTimeDifference() < 0.0 )
-		{
-			// Too lost in time
-			return -1;
-		}
-		*/
-		
+		// Players no longer lose their daily streak
 		return 1;
 	}
 	
@@ -8276,7 +8250,7 @@ class CFlyingMedkit : ScriptBaseEntity // Medkit Dart (scxpm_medkit_dart)
 		{
 			// Vector.ToString() format is XX.XXXXX, YY.YYYYY, ZZ.ZZZZZ. Remove the commas.
 			string szTemp = szValue;
-			szTemp.Replace( ',', '' ); // Should work...
+			szTemp.Replace( ',', '' );
 			
 			g_Utility.StringToVector( pForward, szTemp );
 			return true;

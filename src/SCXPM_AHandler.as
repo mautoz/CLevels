@@ -157,7 +157,6 @@ void a25_check()
 								
 								if ( flHoldTime >= flGoalTime )
 								{
-									// Look at my horse, my horse is amazing!
 									pCheck.SetKeyvalue( "$i_a_unlock", 26 );
 									
 									// Reset...
@@ -1558,7 +1557,7 @@ void mommamesa_check()
 				int iEscaped = pPlayerKVD.GetKeyvalue( "$i_escape" ).GetInteger();
 				if ( iEscaped == 1 )
 				{
-					// To prevent abuse, player must have at least this much score, YES I'M THAT EVIL ON THIS ONE
+					// To prevent abuse, player must have at least this much score
 					if ( pPlayer.pev.frags >= 44.0 ) // 5%. Rounded down
 					{
 						// Get!
@@ -2312,7 +2311,6 @@ void sc_tetris1_check()
 	int iCheck = pKVD.GetKeyvalue( "$i_run" ).GetInteger();
 	if ( iCheck == 1 )
 	{
-		// Go! Go! Go!
 		string szPath = "scripts/plugins/temp/sc_tetris1.lst";
 		File@ thefile = g_FileSystem.OpenFile( szPath, OpenFile::WRITE );
 		
@@ -2381,7 +2379,6 @@ void sc_tetris6_check()
 	// 65 second tolerance before timer starts
 	if ( pCheck.pev.iuser4 >= 651 && pCheck.pev.iuser3 == 0 )
 	{
-		// One last push!
 		string szPath = "scripts/plugins/temp/sc_tetris6.lst";
 		File@ thefile = g_FileSystem.OpenFile( szPath, OpenFile::WRITE );
 		
@@ -2454,7 +2451,7 @@ void sc_tetris6_check()
 						
 						if ( iTimes == 6 )
 						{
-							// EVIL SCORE REQUIREMENT
+							// To prevent abuse, player must have at least this much score
 							if ( pPlayer.pev.frags >= 96.0 ) // Max score of 484~ish. This is 20%. Rounded down
 							{
 								// Get!
