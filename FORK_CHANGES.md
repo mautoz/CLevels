@@ -11,7 +11,7 @@ Replace the two files in `scripts/plugins/` (or wherever your `default_plugins.t
 | What | Before | Now |
 |---|---|---|
 | Log files | one file per map change, with a garbage name | one file per day, `LOG_YYYY-MM-DD.log`, in **UTC**; lines are `HH:MM:SS UTC - message` |
-| XP HUD channel | HUD text channel 1 | channel 6 (`HUD_CHANNEL` constant at the top of `SCXPM.as`) |
+| XP HUD | sent every second | only sent when it changes, or once a minute (still channel 1, `HUD_CHANNEL` constant) |
 | XP needed for a level | up to 1 XP different from the level formula | exactly the first XP of the next level (half of the levels need 1 XP less) |
 | Daily rewards | never became available | available every 20 h, can also be claimed from the menu |
 | `why1` ending | game ends right away | game ends 5 s after the end trigger |
@@ -24,10 +24,10 @@ README section about the fork and a "modified" line in the header of both files,
 ### #2 Comment cleanup
 Removed commented-out code and joke comments. After stripping every comment the code is identical to the original, so behavior can't change.
 
-### #3 HUD: own text channel, only resend when it changes
+### #3 and #10 HUD: only resend when it changes
 - **Problem:** the XP HUD was sent every second on HUD channel 1, the default channel of map texts (`game_text`). Map messages showed up for a moment and were then wiped.
-- **Fix:** the HUD uses its own channel (`HUD_CHANNEL = 6`) and is only resent when the text or the player's HUD settings change, or once a minute. It is always sent on map start, when a player joins and when a map shows the HUD again.
-- If your maps or other plugins already use channel 6, change `HUD_CHANNEL`.
+- **Fix:** the HUD is only resent when the text or the player's HUD settings change, or once a minute. It is always sent on map start, when a player joins and when a map shows the HUD again, and a settings change from the HUD menu applies right away. Map texts are only wiped when the HUD text changes, for example on an XP gain.
+- **Correction:** #3 also moved the HUD to "its own channel" (6). That doesn't work: Sven Co-op has only **4** HUD text channels and higher numbers wrap around (6 is channel 2, 9 is channel 1). Channel 1 is the map texts' default, 2 is used by AFBase and other plugins, 3 by the game's player info, and 4 by many maps. On channel 6 the HUD disappeared after the server's welcome message. #10 puts it back on channel 1, like the original. The `HUD_CHANNEL` constant stays for servers that want another one.
 
 ### #4 Log: really one file per day
 - **Problem:** `DateTime( UnixTimestamp() )` returns wrong date parts on the server, so `SCXPM_Log` created a new file with a garbage name on every map change. The AngelScript file system only allows **1024 files written per server session**. After about a week every write failed, player saves included, until the server restarted.

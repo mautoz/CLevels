@@ -7,7 +7,7 @@ This is a fork of [JulianR0/CLevels](https://github.com/JulianR0/CLevels) (SCXPM
 - no repeated "You reached level X!" on high levels, and max level 3000 enforced;
 - daily rewards work again and can be claimed from the menu;
 - the "That's the question" achievement (`why1`) can be unlocked;
-- the XP HUD no longer wipes map texts (own HUD channel);
+- the XP HUD no longer wipes map texts every second;
 - text and typo fixes.
 
 The save format is unchanged, so existing v4 saves keep working.
@@ -15,6 +15,10 @@ The save format is unchanged, so existing v4 saves keep working.
 **The server:** the [BR] Mau Sven Co-op server, with its maps, achievements guide and ranking: [svencoop.mtavaresozaki.com.br](https://svencoop.mtavaresozaki.com.br).
 
 All credit for SCXPM goes to its author, Julian Rodriguez. This fork keeps the original GPL-3.0 license (see `LICENSE`); modified files say so in their header. It is not affiliated with the original project, so please report issues with the plugin itself to the original repository.
+
+---
+
+# Original README (by Julian Rodriguez)
 
 ## DEPRECATION WARNING
 

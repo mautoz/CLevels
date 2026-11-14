@@ -42,7 +42,7 @@ const int HUD_ACHIEVEMENTS = 256;
 const int HC_AUTOSELECT = 512;
 const int BS_NOAUTOOPEN = 1024;
 
-const int HUD_CHANNEL = 6; // HUD text channel for the XP HUD. Map texts (game_text) default to channel 1, so keep it away from 1-4
+const int HUD_CHANNEL = 1; // HUD text channel of the XP HUD. There are only 4 channels (1-4, higher numbers wrap around) and all of them are used by maps, other plugins or the game
 const float HH_EXTRAPERCENT = 2.00; // Happy Hour
 const float RT_EXTRAPERCENT = 1.50; // Runaway Time
 
@@ -3836,8 +3836,8 @@ void scxpm_showdata()
 					hudtext += "Achievements: " + GetAchievementClear( i ) + " / " + int( szAchievementNames.length() ) + "\n";
 			}
 			
-			// Only resend when the text or the player's HUD settings change (or once a minute):
-			// avoids replaying the text effect and sending the same message every second
+			// Map texts (game_text) use channel 1 by default and resending the HUD every second wiped
+			// them, so only resend when the text or the player's HUD settings change (or once a minute)
 			string szHudKey = hudtext + "|" + hud_pos_x[ i ] + "," + hud_pos_y[ i ] + "," + hud_effect[ i ];
 			szHudKey += "," + hud_red1[ i ] + "," + hud_green1[ i ] + "," + hud_blue1[ i ] + "," + hud_red2[ i ] + "," + hud_green2[ i ] + "," + hud_blue2[ i ];
 			szHudKey += "," + hud_alpha[ i ] + "," + hud_ef_fadein[ i ] + "," + hud_ef_scantime[ i ];
