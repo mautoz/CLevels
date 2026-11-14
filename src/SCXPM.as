@@ -7505,40 +7505,52 @@ string AddCommas( int& in iNum )
 	return szOutput;
 }
 
-/* Customized logs */
+/* Converts a Unix timestamp to a UTC date and time (Howard Hinnant's civil_from_days).
+   DateTime( UnixTimestamp() ) returns wrong date parts on the server, which gave the log
+   file a different garbage name on every map change. The AngelScript file system only allows
+   1024 files written per server session, so after some days every write failed, saves included. */
+void SCXPM_UnixToUTC( int64 t, int& out year, int& out month, int& out day, int& out hour, int& out minutes, int& out seconds )
+{
+	int64 days = t / 86400;
+	int64 rem = t % 86400;
+	if ( rem < 0 ) { rem += 86400; days--; }
+	hour = int( rem / 3600 );
+	minutes = int( ( rem % 3600 ) / 60 );
+	seconds = int( rem % 60 );
+	
+	int64 z = days + 719468;
+	int64 era = ( z >= 0 ? z : z - 146096 ) / 146097;
+	int64 doe = z - era * 146097;
+	int64 yoe = ( doe - doe / 1460 + doe / 36524 - doe / 146096 ) / 365;
+	int64 y = yoe + era * 400;
+	int64 doy = doe - ( 365 * yoe + yoe / 4 - yoe / 100 );
+	int64 mp = ( 5 * doy + 2 ) / 153;
+	int64 d = doy - ( 153 * mp + 2 ) / 5 + 1;
+	int64 m = mp < 10 ? mp + 3 : mp - 9;
+	if ( m <= 2 ) y++;
+	year = int( y );
+	month = int( m );
+	day = int( d );
+}
+
+/* Two digit number with a leading zero */
+string SCXPM_Pad2( int value )
+{
+	return ( value < 10 ? "0" : "" ) + value;
+}
+
+/* Customized logs, one file per day (UTC) */
 void SCXPM_Log( const string& in szMessage )
 {
-	DateTime thetime( UnixTimestamp() );
-	int year = thetime.GetYear();
-	int month = thetime.GetMonth();
-	int day = thetime.GetDayOfMonth();
-	int hour = thetime.GetHour();
-	int minutes = thetime.GetMinutes();
-	int seconds = thetime.GetSeconds();
+	int year, month, day, hour, minutes, seconds;
+	SCXPM_UnixToUTC( UnixTimestamp(), year, month, day, hour, minutes, seconds );
 	
-	// Fix for one digit month/day/hour/minute/second
-	string szMonths;
-	string szDays;
-	string szHours;
-	string szMinutes;
-	string szSeconds;
-	if ( month < 10 ) szMonths = "0" + month;
-	else szMonths = month;
-	if ( day < 10 ) szDays = "0" + day;
-	else szDays = day;
-	if ( hour < 10 ) szHours = "0" + hour;
-	else szHours = hour;
-	if ( minutes < 10 ) szMinutes = "0" + minutes;
-	else szMinutes = minutes;
-	if ( seconds < 10 ) szSeconds = "0" + seconds;
-	else szSeconds = seconds;
-	
-	string fullpath = PATH_LOGS + "LOG_" + year + "-" + szMonths + "-" + szDays + ".log";
+	string fullpath = PATH_LOGS + "LOG_" + year + "-" + SCXPM_Pad2( month ) + "-" + SCXPM_Pad2( day ) + ".log";
 	File@ thefile = g_FileSystem.OpenFile( fullpath, OpenFile::APPEND );
 	
 	if ( thefile !is null && thefile.IsOpen() )
 	{
-		thefile.Write( szHours + ":" + szMinutes + ":" + szSeconds + " - " + szMessage );
+		thefile.Write( SCXPM_Pad2( hour ) + ":" + SCXPM_Pad2( minutes ) + ":" + SCXPM_Pad2( seconds ) + " UTC - " + szMessage );
 		thefile.Close();
 	}
 }
