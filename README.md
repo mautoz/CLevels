@@ -7,7 +7,7 @@ This is a fork of [JulianR0/CLevels](https://github.com/JulianR0/CLevels) (SCXPM
 - no repeated "You reached level X!" on high levels, and max level 3000 enforced;
 - daily rewards work again and can be claimed from the menu;
 - the "That's the question" achievement (`why1`) can be unlocked;
-- the XP HUD no longer wipes map texts (own HUD channel);
+- the XP HUD no longer wipes map texts every second;
 - text and typo fixes.
 
 The save format is unchanged, so existing v4 saves keep working.
