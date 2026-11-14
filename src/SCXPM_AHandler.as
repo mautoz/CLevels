@@ -1099,6 +1099,24 @@ void MapActivate()
 	}
 	else if ( szMap == 'why1' )
 	{
+		// The map's end trigger "omggameover" also fires its game_end, so the game ends in the same
+		// instant and why1_check() never sees $i_test = 1: nobody could get "That's the question".
+		// Rename the game_end and put a 3 second trigger_relay in its place (no BSP change).
+		CBaseEntity@ pEnd = g_EntityFuncs.FindEntityByTargetname( null, "omggameover" );
+		if ( pEnd !is null && pEnd.GetClassname() == "game_end" )
+		{
+			pEnd.pev.targetname = "omggameover_end";
+			
+			dictionary relayKeys;
+			relayKeys[ "targetname" ] = "omggameover";
+			relayKeys[ "target" ] = "omggameover_end";
+			relayKeys[ "delay" ] = "3";
+			relayKeys[ "triggerstate" ] = "1";
+			g_EntityFuncs.CreateEntity( "trigger_relay", relayKeys, true );
+		}
+		else
+			g_Game.AlertMessage( at_logged, "[SCXPM_AHandler] WARNING: why1 game_end \"omggameover\" not found, the \"That's the question\" fix was NOT applied.\n" );
+		
 		@pEntity = g_EntityFuncs.Create( "info_target", g_vecZero, g_vecZero, false );
 		pEntity.pev.targetname = "sys_adata";
 		
