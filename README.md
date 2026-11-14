@@ -16,6 +16,10 @@ The save format is unchanged, so existing v4 saves keep working.
 
 All credit for SCXPM goes to its author, Julian Rodriguez. This fork keeps the original GPL-3.0 license (see `LICENSE`); modified files say so in their header. It is not affiliated with the original project, so please report issues with the plugin itself to the original repository.
 
+---
+
+# Original README (by Julian Rodriguez)
+
 ## DEPRECATION WARNING
 
 This old "v4" version of SCXPM will be made obsolete on December 31st, 2026. Please use the latest version of SCXPM.

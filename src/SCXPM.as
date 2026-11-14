@@ -42,7 +42,7 @@ const int HUD_ACHIEVEMENTS = 256;
 const int HC_AUTOSELECT = 512;
 const int BS_NOAUTOOPEN = 1024;
 
-const int HUD_CHANNEL = 6; // HUD text channel for the XP HUD. Map texts (game_text) default to channel 1, so keep it away from 1-4
+const int HUD_CHANNEL = 9; // HUD text channel for the XP HUD. Map texts (game_text) default to channel 1 and mostly use 1-4; none of 500+ tested maps used 9
 const float HH_EXTRAPERCENT = 2.00; // Happy Hour
 const float RT_EXTRAPERCENT = 1.50; // Runaway Time
 
