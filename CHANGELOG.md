@@ -1,3 +1,14 @@
+## brmau fork (based on v4.02)
+
+Bug fixes on top of v4.02, one pull request each. Details in [`FORK_CHANGES.md`](FORK_CHANGES.md).
+
+- Log: one file per day (UTC) instead of a new file on every map change, which used up the 1024 files per session limit and made saves fail.
+- Level/XP math in integers: no more repeated level up message on high levels, exact level boundary, max level 3000 enforced.
+- Daily rewards work again (Unix timestamps), can be claimed from the menu and are saved right away. "Next reward" is shown.
+- "That's the question" (`why1`) can be unlocked.
+- XP HUD on its own channel (`HUD_CHANNEL`, default 6) and only resent when it changes.
+- Champion typos and text fixes; comment cleanup.
+
 ## v4.02
 
 - Fixed handicap menu inserting new lines when activating handicaps.

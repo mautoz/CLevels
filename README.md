@@ -2,6 +2,18 @@
 
 This is a fork of [JulianR0/CLevels](https://github.com/JulianR0/CLevels) (SCXPM v4) maintained by mautoz for the [BR] Mau Sven Co-op server. The `brmau` branch is the original v4 (commit `eb44805`) plus bug fixes, each one added in its own pull request so it can be reviewed and reused separately.
 
+**What changed:** see [`FORK_CHANGES.md`](FORK_CHANGES.md) for every fix (problem, fix, how it was tested) and the behavior differences to know when upgrading. In short:
+- no more lost saves after some days of uptime (one log file per day instead of one per map change);
+- no repeated "You reached level X!" on high levels, and max level 3000 enforced;
+- daily rewards work again and can be claimed from the menu;
+- the "That's the question" achievement (`why1`) can be unlocked;
+- the XP HUD no longer wipes map texts (own HUD channel);
+- text and typo fixes.
+
+The save format is unchanged, so existing v4 saves keep working.
+
+**The server:** the [BR] Mau Sven Co-op server, with its maps, achievements guide and ranking: [svencoop.mtavaresozaki.com.br](https://svencoop.mtavaresozaki.com.br).
+
 All credit for SCXPM goes to its author, Julian Rodriguez. This fork keeps the original GPL-3.0 license (see `LICENSE`); modified files say so in their header. It is not affiliated with the original project, so please report issues with the plugin itself to the original repository.
 
 ## DEPRECATION WARNING
