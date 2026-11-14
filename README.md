@@ -1,3 +1,9 @@
+## About this fork
+
+This is a fork of [JulianR0/CLevels](https://github.com/JulianR0/CLevels) (SCXPM v4) maintained by mautoz for the [BR] Mau Sven Co-op server. The `brmau` branch is the original v4 (commit `eb44805`) plus bug fixes, each one added in its own pull request so it can be reviewed and reused separately.
+
+All credit for SCXPM goes to its author, Julian Rodriguez. This fork keeps the original GPL-3.0 license (see `LICENSE`); modified files say so in their header. It is not affiliated with the original project, so please report issues with the plugin itself to the original repository.
+
 ## DEPRECATION WARNING
 
 This old "v4" version of SCXPM will be made obsolete on December 31st, 2026. Please use the latest version of SCXPM.
