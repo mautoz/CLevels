@@ -1,6 +1,6 @@
 # Changes in this fork (`brmau` branch)
 
-Everything that differs from the original SCXPM v4 ([JulianR0/CLevels](https://github.com/JulianR0/CLevels), branch `v4`, commit `eb44805`). Each change was made in its own pull request, tested on a local Sven Co-op server and reviewed before merging. Earlier versions of most of them have been running on the [BR] Mau server ([svencoop.mtavaresozaki.com.br](https://svencoop.mtavaresozaki.com.br)).
+Everything that differs from the original SCXPM v4 ([JulianR0/CLevels](https://github.com/JulianR0/CLevels), branch `v4`, commit `eb44805`). Each change was made in its own pull request. Earlier versions of most of them have been running on the [BR] Mau server ([svencoop.mtavaresozaki.com.br](https://svencoop.mtavaresozaki.com.br)).
 
 Only `src/SCXPM.as` and `src/SCXPM_AHandler.as` are changed. **The save format is unchanged**, so existing v4 saves keep working.
 

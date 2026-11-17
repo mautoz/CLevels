@@ -1,7 +1,7 @@
 /*
 	Imperium Sven Co-op's SCXPM: Achievements Handler
 	Copyright (C) 2019-2023  Julian Rodriguez
-	Modified by mautoz ([BR] Mau server), 2026: bug fixes, see the commit history.
+	Modified by mautoz (Mau in game, [BR] Mau server), 2026: bug fixes, see the commit history.
 	
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
